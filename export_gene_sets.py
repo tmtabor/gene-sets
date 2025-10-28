@@ -27,6 +27,10 @@ def parse_args():
     parser.add_argument('--mouse', action='store_true',
                         help='Generate only mouse gene sets')
 
+    # Limit number of files
+    parser.add_argument('--limit', type=int,
+                        help='Limit the number of gene sets to export')
+
     # Resume functionality
     parser.add_argument('--resume', action='store_true',
                         help='Skip generating YAML files that already exist')
@@ -498,7 +502,7 @@ def export_gene_set_to_yaml(cursor, gene_set_id: int, output_dir: Path,
     return standard_name
 
 
-def process_species(species_code: str, db_path: str, xml_history_file: Path, output_dir: Path, resume: bool = False):
+def process_species(species_code: str, db_path: str, xml_history_file: Path, output_dir: Path, resume: bool = False, limit: Optional[int] = None):
     """Process gene sets for a single species."""
 
     print(f"\n{'='*60}")
@@ -520,6 +524,8 @@ def process_species(species_code: str, db_path: str, xml_history_file: Path, out
 
     print(f"Found {len(gene_set_ids)} gene sets to export")
 
+    if limit:
+        print(f"  Limiting to {limit} gene sets")
     if resume:
         print("  Resume mode: skipping existing files")
 
@@ -539,6 +545,10 @@ def process_species(species_code: str, db_path: str, xml_history_file: Path, out
     exported_count = 0
     skipped_count = 0
     for i, gene_set_id in enumerate(gene_set_ids, 1):
+        # Stop if we've reached the limit
+        if limit and exported_count >= limit:
+            break
+
         try:
             name = export_gene_set_to_yaml(cursor, gene_set_id, output_dir, version_history, cache, resume=resume)
             if name:
@@ -582,6 +592,21 @@ def main():
     output_dir = Path(args.output) if args.output else Path('outputs/')
     input_dir = Path(args.input) if args.input else Path('inputs/')
 
+    # Calculate limit per species if both are being processed
+    human_limit = None
+    mouse_limit = None
+
+    if args.limit:
+        # If only processing one species, give it the full limit
+        if args.human and not args.mouse:
+            human_limit = args.limit
+        elif args.mouse and not args.human:
+            mouse_limit = args.limit
+        else:
+            # If processing both, split the limit
+            human_limit = args.limit
+            mouse_limit = max(0, args.limit)  # Mouse gets remaining after human
+
     # Process human gene sets if selected (or if no species specified, process both)
     if args.human or (not args.human and not args.mouse):
         human_count = process_species(
@@ -589,8 +614,13 @@ def main():
             db_path=args.hs_db if args.hs_db else str(input_dir / 'msigdb_FULL_v2025.1.Hs.db'),
             xml_history_file=Path(args.hs_xml) if args.hs_xml else input_dir / 'msigdb_history_v2025.1.Hs.xml',
             output_dir=output_dir / 'human',
-            resume=args.resume
+            resume=args.resume,
+            limit=human_limit
         )
+
+        # Adjust mouse limit if processing both species
+        if args.limit and mouse_limit is not None and not args.human:
+            mouse_limit = max(0, args.limit - human_count)
     else:
         human_count = 0
 
@@ -601,7 +631,8 @@ def main():
             db_path=args.mm_db if args.mm_db else str(input_dir / 'msigdb_FULL_v2025.1.Mm.db'),
             xml_history_file=Path(args.mm_xml) if args.mm_xml else input_dir / 'msigdb_history_v2025.1.Mm.xml',
             output_dir=output_dir / 'mouse',
-            resume=args.resume
+            resume=args.resume,
+            limit=mouse_limit
         )
     else:
         mouse_count = 0
