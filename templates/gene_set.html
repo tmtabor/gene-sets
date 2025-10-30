@@ -54,6 +54,7 @@
 
 
 
+<br>
 
 <table class="lists4 {{ species_class }}" width="100%" border="0" cellspacing="0" cellpadding="0">
   <tbody><tr class="toprow">
@@ -70,7 +71,7 @@
   </tr>
   <tr>
     <th>Full description or abstract</th>
-    <td>{{ full_description }}</td>
+    <td>{{ full_description|safe }}</td>
   </tr>
   <tr>
     <th>Collection</th>
@@ -92,7 +93,7 @@
   </tr>
   <tr>
     <th>External links</th>
-    <td><a target="_blank" href=""></a></td>
+    <td>{{ external_links_html|safe }}</td>
   </tr>
   <tr>
     <th>Filtered by similarity <a href="msigdb/help_annotations.jsp#filteredBySimilarity"><span class="info_icon {{ species_class }}" id="filteredBySimilarityHelp" title="Gene set candidates that were excluded from MSigDB as highly similar to this selected set.">?</span></a>
@@ -110,7 +111,7 @@
   </tr>
   <tr>
     <th>Contributed by</th>
-    <td>{{ contributed_by }} ({{ contributor_org }})</td>
+    <td>{{ contributor_display }}</td>
   </tr>
   <tr>
     <th>Source platform or<br>identifier namespace</th>
@@ -119,10 +120,7 @@
   <tr>
     <th>Dataset references</th>
     <td>
-      &nbsp;
-
-
-
+{{ dataset_references|safe }}
     </td>
   </tr>
   <tr>
@@ -156,7 +154,20 @@
 
     </td>
   </tr>
+  {% if species == 'human' %}
+  <tr>
+    <th>Gene families <a href="msigdb/help_annotations.jsp#families"><span class="info_icon {{ species_class }}" id="geneFamiliesHelp" title="Categorizes members of this gene set by gene families.">?</span></a></th>
+    <script type="text/javascript">
+      contextIds[q++] = "geneFamiliesHelp";
+    </script>
+    <td>
 
+      <a href="msigdb/{{ species }}/gene_families.jsp?geneSetName={{ standard_name }}">Categorize</a> these
+      {{ num_genes_mapped }} genes by gene family
+
+    </td>
+  </tr>
+  {% endif %}
   <tr>
     <th>Show members</th>
     <td>

@@ -35,7 +35,9 @@ def process_gene_links(text):
 def build_related_gene_sets(related_gene_sets, species):
     """Build the related gene sets HTML section"""
     if not related_gene_sets:
-        return ''
+        return '''      
+        &nbsp;
+        '''
 
     html_parts = []
 
@@ -59,9 +61,32 @@ def build_related_gene_sets(related_gene_sets, species):
               ''')
         html_parts.append('''
             </div>
+          
+          
           ''')
 
-    return ''.join(html_parts) if html_parts else ''
+    from_authors = related_gene_sets.get('from_same_authors', [])
+    if from_authors:
+        count = len(from_authors)
+        html_parts.append(f'''
+            <a href="javascript:toggleWithShowHide('relatedByAuthors', 'showHideByAuthors')">
+              (<span id="showHideByAuthors">show</span> {count} gene {'sets' if count > 1 else 'set'} from any of these authors)
+            </a>
+            <br>
+            <div id="relatedByAuthors" style="display: none;">
+              <br>
+              ''')
+        for geneset_name in from_authors:
+            html_parts.append(f'''
+                <a href="msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
+              ''')
+        html_parts.append('''
+            </div>
+          ''')
+
+    return ''.join(html_parts) if html_parts else '''      
+        &nbsp;
+        '''
 
 
 def build_version_history(version_history):
@@ -204,18 +229,69 @@ def build_compendia_links(standard_name, species):
       </a>
       '''
     else:
+        # Human has 4 compendia
         return f'''
       
       NG-CHM interactive heatmaps<br>
       (<i>Please note that clustering takes a few seconds</i>)<br>
-      <a class="ext_link {species}" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=humanTranscriptomicBodyMap" target="_blank">
-        <nobr>Human Transcriptomic BodyMap compendium</nobr>
+      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex" target="_blank">
+        <nobr>GTEx compendium</nobr>
+      </a><br>
+      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman" target="_blank">
+        <nobr>Human tissue compendium (Novartis)</nobr>
+      </a><br>
+      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues" target="_blank">
+        <nobr>Global Cancer Map (Broad Institute)</nobr>
+      </a><br>
+      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines" target="_blank">
+        <nobr>NCI-60 cell lines (National Cancer Institute)</nobr>
       </a>
       <br><br>Legacy heatmaps (PNG)<br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=humanTranscriptomicBodyMap">
-        <nobr>Human Transcriptomic BodyMap compendium</nobr>
+      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex">
+        <nobr>GTEx compendium</nobr>
+      </a><br>
+      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman">
+        <nobr>Human tissue compendium (Novartis)</nobr>
+      </a><br>
+      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues">
+        <nobr>Global Cancer Map (Broad Institute)</nobr>
+      </a><br>
+      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines">
+        <nobr>NCI-60 cell lines (National Cancer Institute)</nobr>
       </a>
       '''
+
+
+def build_dataset_references(dataset_references):
+    """Build dataset references HTML section"""
+    if not dataset_references:
+        return '''      &nbsp;
+      
+      
+      '''
+
+    count = len(dataset_references)
+    html = f'''      <a href="javascript:javascript:toggleWithShowHide('datasets', 'showHideDatasets')">
+            (<span id="showHideDatasets">show</span> {count} dataset{'s' if count > 1 else ''})
+        </a>
+      <br>
+      <div id="datasets" style="display: none;"><br>'''
+
+    dataset_links = []
+    for dataset in dataset_references:
+        dataset_type = dataset.get('type', '')
+        dataset_id = dataset.get('id', '')
+
+        if dataset_type == 'GEO':
+            url = f'http://www.ncbi.nlm.nih.gov/projects/geo/query/acc.cgi?acc={dataset_id}'
+            dataset_links.append(f'<a href="{url}" target="_blank">{dataset_id}</a>')
+        else:
+            dataset_links.append(dataset_id)
+
+    html += '<br>'.join(dataset_links)
+    html += '</div>\n'
+
+    return html
 
 
 def generate_html(data, species):
@@ -249,6 +325,7 @@ def generate_html(data, species):
     members_html = build_members_table(members)
     overlap_links = build_overlap_links(standard_name, species, species_class)
     compendia_links = build_compendia_links(standard_name, species)
+    dataset_references = build_dataset_references(data.get('dataset_references', []))
 
     # Cross-species info
     other_species = 'human' if species == 'mouse' else 'mouse'
@@ -258,16 +335,62 @@ def generate_html(data, species):
     pmid = source_publication.get('pmid', '')
     authors_list = source_publication.get('authors', [])
     authors = ','.join(authors_list) if authors_list else ''
-    pub_link = f'<a target="_blank" href="https://pubmed.ncbi.nlm.nih.gov/{pmid}">Pubmed {pmid}</a>&nbsp;&nbsp;&nbsp;Authors: {authors}' if pmid else ''
+    pub_link = f'<a target="_blank" href="https://pubmed.ncbi.nlm.nih.gov/{pmid}">Pubmed {pmid}</a>&nbsp;&nbsp;&nbsp;Authors: {authors}' if pmid else '&nbsp;'
 
-    # Build collection display
+    # Build collection display - handle full 3-level hierarchy
     collection_name = collection.get('name', '')
     collection_full = collection.get('full_name', '')
-    if ':' in collection_name:
-        main_col, sub_col = collection_name.split(':', 1)
-        collection_display = f'{main_col}: Curated<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{sub_col}: {collection_full}'
+
+    if not collection_name:
+        collection_display = '&nbsp;'
     else:
-        collection_display = f'{collection_name}: {collection_full}'
+        parts = collection_name.split(':')
+
+        # Map of collection codes to names
+        collection_map = {
+            'C2': 'Curated', 'M2': 'Curated',
+            'CP': 'Canonical Pathways',
+            'CGP': 'Chemical and Genetic Perturbations',
+            'C5': 'Ontology', 'M5': 'Ontology',
+            'GO': 'Gene Ontology',
+            'C7': 'Immunologic Signature', 'M7': 'Immunologic Signature',
+        }
+
+        if len(parts) == 1:
+            # Simple collection: "C2"
+            collection_display = f'{parts[0]}: {collection_map.get(parts[0], collection_full)}'
+        elif len(parts) == 2:
+            # Two-level: "C2:CGP"
+            main_name = collection_map.get(parts[0], 'Curated')
+            collection_display = f'{parts[0]}: {main_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{parts[1]}: {collection_full}'
+        else:
+            # Three-level: "C2:CP:KEGG_MEDICUS"
+            main_name = collection_map.get(parts[0], 'Curated')
+            mid_name = collection_map.get(parts[1], 'Canonical Pathways')
+            full_sub = ':'.join(parts[1:])
+            collection_display = f'{parts[0]}: {main_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{parts[1]}: {mid_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{full_sub}: {collection_full}'
+
+    # Build external links
+    external_links = data.get('external_links', [])
+    external_links_html = ''
+    if external_links:
+        links = []
+        for url in external_links:
+            links.append(f'<a target="_blank" href="{url}">{url}</a>')
+        links.append('<a target="_blank" href=""></a>')
+        external_links_html = '<br>'.join(links)
+    else:
+        external_links_html = '<a target="_blank" href=""></a>'
+
+    # Build contributor display - show organization in parentheses if different
+    if contributed_by and contributor_org and contributed_by != contributor_org:
+        contributor_display = f'{contributed_by} ({contributor_org})'
+    elif contributed_by:
+        contributor_display = contributed_by
+    elif contributor_org:
+        contributor_display = contributor_org
+    else:
+        contributor_display = '&nbsp;'
 
     # Load and render template
     template = jinja_env.get_template('gene_set.html')
@@ -279,17 +402,18 @@ def generate_html(data, species):
         standard_name=standard_name,
         systematic_name=systematic_name,
         brief_html=brief_html,
-        full_description=full_description,
+        full_description=full_description if full_description else '&nbsp;',
         collection_display=collection_display,
         pub_link=pub_link,
         exact_source=exact_source,
         related_html=related_html,
+        external_links_html=external_links_html,
         source_species=source_species,
-        contributed_by=contributed_by,
-        contributor_org=contributor_org,
+        contributor_display=contributor_display,
         source_platform_name=source_platform.get('name', ''),
         overlap_links=overlap_links,
         compendia_links=compendia_links,
+        dataset_references=dataset_references,
         num_genes_mapped=num_genes_mapped,
         num_members=num_members,
         members_html=members_html,
