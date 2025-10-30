@@ -1,1 +1,6 @@
-PyYAML>=6.0
+PyYAML>=6.0     # YAML parsing and generation
+Jinja2>=3.0     # HTML templating
+
+# HTML parsing and comparison (for html_diff.py)
+beautifulsoup4>=4.9
+lxml>=4.6

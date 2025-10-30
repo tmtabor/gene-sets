@@ -9,9 +9,18 @@ import re
 from pathlib import Path
 import logging
 import argparse
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+# Initialize Jinja2 environment
+template_dir = Path(__file__).parent / 'templates'
+jinja_env = Environment(
+    loader=FileSystemLoader(template_dir),
+    autoescape=select_autoescape(['html', 'xml'])
+)
 
 
 def process_gene_links(text):
@@ -210,7 +219,7 @@ def build_compendia_links(standard_name, species):
 
 
 def generate_html(data, species):
-    """Generate HTML content from YAML data"""
+    """Generate HTML content from YAML data using Jinja2 template"""
     species_class = species
     species_title = 'Mouse' if species == 'mouse' else 'Human'
 
@@ -238,14 +247,12 @@ def generate_html(data, species):
     related_html = build_related_gene_sets(related_gene_sets, species)
     version_history_html = build_version_history(version_history)
     members_html = build_members_table(members)
+    overlap_links = build_overlap_links(standard_name, species, species_class)
+    compendia_links = build_compendia_links(standard_name, species)
 
-    # Cross-species link
+    # Cross-species info
     other_species = 'human' if species == 'mouse' else 'mouse'
     other_species_title = 'Human' if species == 'mouse' else 'Mouse'
-    cross_species_link = f'''  <p style="text-indent: 50px;">
-    <i>For the {other_species_title} gene set with the same name, see <a href="msigdb/{other_species}/geneset/{standard_name}.html">{standard_name}</a></i>
-  </p>
-'''
 
     # Build publication link
     pmid = source_publication.get('pmid', '')
@@ -262,187 +269,34 @@ def generate_html(data, species):
     else:
         collection_display = f'{collection_name}: {collection_full}'
 
-    html = f'''<main>          
-              <h1 class="{species_class}">{species_title} Gene Set: {standard_name}
-                
-              </h1>
-            
-          
-<link rel="stylesheet" type="text/css" href="yui/build/container/assets/container.css"> 
-<script type="text/javascript" src="yui/build/yahoo-dom-event/yahoo-dom-event.js"></script> 
-<script type="text/javascript" src="yui/build/animation/animation-min.js"></script> 
-<script type="text/javascript" src="yui/build/dragdrop/dragdrop-min.js"></script>
-<script type="text/javascript" src="yui/build/container/container-min.js"></script> 
-<script type="text/javascript" src="yui/build/dom/dom-min.js"></script> 
-<script type="text/javascript">
-  var contextIds = [];
-  var myTooltip;
-  var initFunction = function () {{
-    myTooltip = new YAHOO.widget.Tooltip("myToolTipId", {{ 
-      context: contextIds,
-      showDelay: 100,
-      autodismissdelay: 20000 
-    }});
-  }};
-  YAHOO.util.Event.onDOMReady(initFunction);
-</script>
-<script type="text/javascript">
-  var q = 0;
+    # Load and render template
+    template = jinja_env.get_template('gene_set.html')
 
-  function toggle(id) {{
-    var element = document.getElementById(id);
-    element.style.display = element.style.display == 'none' ? '' : 'none';
-  }}
-  
-  function toggleWithShowHide(tableId, showHideId) {{
-    toggle(tableId);
-    var showHideSpan = document.getElementById(showHideId);
-    showHideSpan.innerHTML = showHideSpan.innerHTML == 'show' ? 'hide' : 'show';
-  }}
-
-  function exportFounderGeneSets(fileType) {{
-    document.exportForm.fileType.value = fileType;
-    document.exportForm.submit();
-  }}
-</script>
-
-
-{cross_species_link}
-
-
-
-<table class="lists4 {species_class}" width="100%" border="0" cellspacing="0" cellpadding="0">
-  <tbody><tr class="toprow">
-    <th>Standard name</th>
-    <td>{standard_name}</td>
-  </tr>
-  <tr>
-    <th>Systematic name</th>
-    <td>{systematic_name}</td>
-  </tr>
-  <tr>
-    <th>Brief description</th>
-    <td>{brief_html}</td>
-  </tr>
-  <tr>
-    <th>Full description or abstract</th>
-    <td>{full_description}</td>
-  </tr>
-  <tr>
-    <th>Collection</th>
-    <td>{collection_display}</td>
-  </tr>
-  <tr>
-    <th>Source publication</th>
-    <td>{pub_link}</td>
-  </tr>
-  <tr>
-    <th>Exact source</th>
-    <td>{exact_source}</td>
-  </tr>
-  <tr>
-    <th>Related gene sets</th>
-    <td>
-{related_html}
-    </td>
-  </tr>
-  <tr>
-    <th>External links</th>
-    <td><a target="_blank" href=""></a></td>
-  </tr>
-  <tr>
-    <th>Filtered by similarity <a href="msigdb/help_annotations.jsp#filteredBySimilarity"><span class="info_icon {species_class}" id="filteredBySimilarityHelp" title="Gene set candidates that were excluded from MSigDB as highly similar to this selected set.">?</span></a>
-      </th>
-    <script type="text/javascript">
-      contextIds[q++] = "filteredBySimilarityHelp";
-    </script>
-    <td>
-        
-    </td>
-  </tr>
-  <tr>
-    <th>Source species</th>
-    <td>{source_species}</td>
-  </tr>
-  <tr>
-    <th>Contributed by</th>
-    <td>{contributed_by} ({contributor_org})</td>
-  </tr>
-  <tr>
-    <th>Source platform or<br>identifier namespace</th>
-    <td>{source_platform.get('name', '')}</td>
-  </tr>
-  <tr>
-    <th>Dataset references</th>
-    <td>
-      &nbsp;
-      
-      
-      
-    </td>
-  </tr>
-  <tr>
-    <th>Download gene set</th>
-    <td>format: <a href="msigdb/{species}/download_geneset.jsp?geneSetName={standard_name}&amp;fileType=grp">grp</a> | <a href="msigdb/{species}/download_geneset.jsp?geneSetName={standard_name}&amp;fileType=gmt">gmt</a> | <a href="msigdb/{species}/download_geneset.jsp?geneSetName={standard_name}&amp;fileType=xml">xml</a> | <a href="msigdb/{species}/download_geneset.jsp?geneSetName={standard_name}&amp;fileType=json">json</a> | <a href="msigdb/{species}/download_geneset.jsp?geneSetName={standard_name}&amp;fileType=TSV">TSV metadata</a></td>
-  </tr>
-  <tr>
-    <th>Compute overlaps <a href="msigdb/help_annotations.jsp#overlap"><span class="info_icon {species_class}" id="overlapHelp" title="Computes overlaps with gene sets in the selected MSigDB gene set collection">?</span></a></th>
-    <script type="text/javascript">
-      contextIds[q++] = "overlapHelp";
-    </script>
-    <td>
-{build_overlap_links(standard_name, species, species_class)}
-    </td>
-  </tr>
-  <tr>
-    <th>Compendia expression profiles <a href="msigdb/help_annotations.jsp#compendia"><span class="info_icon {species_class}" id="compendiaHelp" title="Displays this gene set's expression profile based on the selected compendium of expression data.">?</span></a></th>
-    <script type="text/javascript">
-      contextIds[q++] = "compendiaHelp";
-    </script>
-    <td>
-{build_compendia_links(standard_name, species)}
-    </td>
-  </tr>
-  <tr>
-    <th>Advanced query</th>
-    <td>
-      
-      <a href="msigdb/{species}/annotate.jsp?geneSetName={standard_name}">Further investigate</a> 
-        these {num_genes_mapped} genes
-      
-    </td>
-  </tr>
-  
-  <tr>
-    <th>Show members</th>
-    <td>
-      <a href="javascript:toggleWithShowHide('geneListing', 'showHideMembers')">
-        (<span id="showHideMembers">show</span> {num_members} source identifiers mapped to {num_genes_mapped} genes)
-      </a>
-      <br>
-      <div id="geneListing" style="display: none;">
-        <br>
-{members_html}
-      </div>
-    </td>
-  </tr>
-  <tr>
-    <th>Version history</th>
-    <td>
-{version_history_html}
-    </td>
-  </tr>
-</tbody></table>
-
-
-<br><p>
-See <a href="msigdb_license_terms.jsp">MSigDB license terms here</a>. Please note that certain gene sets 
-have special access terms.</p>
-<br>
-
- </main>'''
-
-    return html
+    return template.render(
+        species=species,
+        species_class=species_class,
+        species_title=species_title,
+        standard_name=standard_name,
+        systematic_name=systematic_name,
+        brief_html=brief_html,
+        full_description=full_description,
+        collection_display=collection_display,
+        pub_link=pub_link,
+        exact_source=exact_source,
+        related_html=related_html,
+        source_species=source_species,
+        contributed_by=contributed_by,
+        contributor_org=contributor_org,
+        source_platform_name=source_platform.get('name', ''),
+        overlap_links=overlap_links,
+        compendia_links=compendia_links,
+        num_genes_mapped=num_genes_mapped,
+        num_members=num_members,
+        members_html=members_html,
+        version_history_html=version_history_html,
+        other_species=other_species,
+        other_species_title=other_species_title
+    )
 
 
 def main():

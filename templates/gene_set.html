@@ -1,0 +1,189 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<main id="contentwrapper" class="body">
+              <h1 class="{{ species_class }}">{{ species_title }} Gene Set: {{ standard_name }}
+
+              </h1>
+
+
+<link rel="stylesheet" type="text/css" href="yui/build/container/assets/container.css">
+<script type="text/javascript" src="yui/build/yahoo-dom-event/yahoo-dom-event.js"></script>
+<script type="text/javascript" src="yui/build/animation/animation-min.js"></script>
+<script type="text/javascript" src="yui/build/dragdrop/dragdrop-min.js"></script>
+<script type="text/javascript" src="yui/build/container/container-min.js"></script>
+<script type="text/javascript" src="yui/build/dom/dom-min.js"></script>
+<script type="text/javascript">
+  var contextIds = [];
+  var myTooltip;
+  var initFunction = function () {
+    myTooltip = new YAHOO.widget.Tooltip("myToolTipId", {
+      context: contextIds,
+      showDelay: 100,
+      autodismissdelay: 20000
+    });
+  };
+  YAHOO.util.Event.onDOMReady(initFunction);
+</script>
+<script type="text/javascript">
+  var q = 0;
+
+  function toggle(id) {
+    var element = document.getElementById(id);
+    element.style.display = element.style.display == 'none' ? '' : 'none';
+  }
+
+  function toggleWithShowHide(tableId, showHideId) {
+    toggle(tableId);
+    var showHideSpan = document.getElementById(showHideId);
+    showHideSpan.innerHTML = showHideSpan.innerHTML == 'show' ? 'hide' : 'show';
+  }
+
+  function exportFounderGeneSets(fileType) {
+    document.exportForm.fileType.value = fileType;
+    document.exportForm.submit();
+  }
+</script>
+
+
+  <p style="text-indent: 50px;">
+    <i>For the {{ other_species_title }} gene set with the same name, see <a href="msigdb/{{ other_species }}/geneset/{{ standard_name }}.html">{{ standard_name }}</a></i>
+  </p>
+
+
+
+
+<table class="lists4 {{ species_class }}" width="100%" border="0" cellspacing="0" cellpadding="0">
+  <tbody><tr class="toprow">
+    <th>Standard name</th>
+    <td>{{ standard_name }}</td>
+  </tr>
+  <tr>
+    <th>Systematic name</th>
+    <td>{{ systematic_name }}</td>
+  </tr>
+  <tr>
+    <th>Brief description</th>
+    <td>{{ brief_html|safe }}</td>
+  </tr>
+  <tr>
+    <th>Full description or abstract</th>
+    <td>{{ full_description }}</td>
+  </tr>
+  <tr>
+    <th>Collection</th>
+    <td>{{ collection_display|safe }}</td>
+  </tr>
+  <tr>
+    <th>Source publication</th>
+    <td>{{ pub_link|safe }}</td>
+  </tr>
+  <tr>
+    <th>Exact source</th>
+    <td>{{ exact_source }}</td>
+  </tr>
+  <tr>
+    <th>Related gene sets</th>
+    <td>
+{{ related_html|safe }}
+    </td>
+  </tr>
+  <tr>
+    <th>External links</th>
+    <td><a target="_blank" href=""></a></td>
+  </tr>
+  <tr>
+    <th>Filtered by similarity <a href="msigdb/help_annotations.jsp#filteredBySimilarity"><span class="info_icon {{ species_class }}" id="filteredBySimilarityHelp" title="Gene set candidates that were excluded from MSigDB as highly similar to this selected set.">?</span></a>
+      </th>
+    <script type="text/javascript">
+      contextIds[q++] = "filteredBySimilarityHelp";
+    </script>
+    <td>
+
+    </td>
+  </tr>
+  <tr>
+    <th>Source species</th>
+    <td>{{ source_species }}</td>
+  </tr>
+  <tr>
+    <th>Contributed by</th>
+    <td>{{ contributed_by }} ({{ contributor_org }})</td>
+  </tr>
+  <tr>
+    <th>Source platform or<br>identifier namespace</th>
+    <td>{{ source_platform_name }}</td>
+  </tr>
+  <tr>
+    <th>Dataset references</th>
+    <td>
+      &nbsp;
+
+
+
+    </td>
+  </tr>
+  <tr>
+    <th>Download gene set</th>
+    <td>format: <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=grp">grp</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=gmt">gmt</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=xml">xml</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=json">json</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=TSV">TSV metadata</a></td>
+  </tr>
+  <tr>
+    <th>Compute overlaps <a href="msigdb/help_annotations.jsp#overlap"><span class="info_icon {{ species_class }}" id="overlapHelp" title="Computes overlaps with gene sets in the selected MSigDB gene set collection">?</span></a></th>
+    <script type="text/javascript">
+      contextIds[q++] = "overlapHelp";
+    </script>
+    <td>
+{{ overlap_links|safe }}
+    </td>
+  </tr>
+  <tr>
+    <th>Compendia expression profiles <a href="msigdb/help_annotations.jsp#compendia"><span class="info_icon {{ species_class }}" id="compendiaHelp" title="Displays this gene set's expression profile based on the selected compendium of expression data.">?</span></a></th>
+    <script type="text/javascript">
+      contextIds[q++] = "compendiaHelp";
+    </script>
+    <td>
+{{ compendia_links|safe }}
+    </td>
+  </tr>
+  <tr>
+    <th>Advanced query</th>
+    <td>
+
+      <a href="msigdb/{{ species }}/annotate.jsp?geneSetName={{ standard_name }}">Further investigate</a>
+        these {{ num_genes_mapped }} genes
+
+    </td>
+  </tr>
+
+  <tr>
+    <th>Show members</th>
+    <td>
+      <a href="javascript:toggleWithShowHide('geneListing', 'showHideMembers')">
+        (<span id="showHideMembers">show</span> {{ num_members }} source identifiers mapped to {{ num_genes_mapped }} genes)
+      </a>
+      <br>
+      <div id="geneListing" style="display: none;">
+        <br>
+{{ members_html|safe }}
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <th>Version history</th>
+    <td>
+{{ version_history_html|safe }}
+    </td>
+  </tr>
+</tbody></table>
+
+
+<br><p>
+See <a href="msigdb_license_terms.jsp">MSigDB license terms here</a>. Please note that certain gene sets
+have special access terms.</p>
+<br>
+
+ </main>
+</body>
+</html>
