@@ -348,25 +348,63 @@ def generate_html(data, species):
 
         # Map of collection codes to names
         collection_map = {
-            'C2': 'Curated', 'M2': 'Curated',
+            # Human collections
+            'C1': 'Positional',
+            'C2': 'Curated',
+            'C3': 'Regulatory Target',
+            'C5': 'Ontology',
+            'C7': 'Immunologic Signature',
+            'C8': 'Cell Type Signature',
+            'CH': 'Hallmark',
+            # Mouse collections
+            'M1': 'Positional',
+            'M2': 'Curated',
+            'M3': 'Regulatory Target',
+            'M5': 'Ontology',
+            'M7': 'Immunologic Signature',
+            'M8': 'Cell Type Signature',
+            'MH': 'Hallmark',
+            # Subcollections
             'CP': 'Canonical Pathways',
             'CGP': 'Chemical and Genetic Perturbations',
-            'C5': 'Ontology', 'M5': 'Ontology',
             'GO': 'Gene Ontology',
-            'C7': 'Immunologic Signature', 'M7': 'Immunologic Signature',
+            'MIR': 'microRNA Targets',
+            'TFT': 'Transcription Factor Targets',
+            'GTRD': 'GTRD',
+            'MIRDB': 'miRDB',
+            # GO subcollections
+            'GO:BP': 'GO Biological Process',
+            'GO:CC': 'GO Cellular Component',
+            'GO:MF': 'GO Molecular Function',
+            # CP subcollections
+            'CP:BIOCARTA': 'BioCarta Pathways',
+            'CP:KEGG': 'KEGG Pathways',
+            'CP:KEGG_MEDICUS': 'KEGG Medicus',
+            'CP:PID': 'PID Pathways',
+            'CP:REACTOME': 'Reactome Pathways',
+            'CP:WIKIPATHWAYS': 'WikiPathways',
+            # MIR subcollections
+            'MIR:MIR_LEGACY': 'MIR_Legacy',
+            'MIR:MIRDB': 'miRDB',
+            # TFT subcollections
+            'TFT:GTRD': 'GTRD',
+            'TFT:TFT_LEGACY': 'TFT_Legacy',
+            # Other
+            'MPT': 'MP Tumor',
         }
 
         if len(parts) == 1:
             # Simple collection: "C2"
             collection_display = f'{parts[0]}: {collection_map.get(parts[0], collection_full)}'
         elif len(parts) == 2:
-            # Two-level: "C2:CGP"
-            main_name = collection_map.get(parts[0], 'Curated')
-            collection_display = f'{parts[0]}: {main_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{parts[1]}: {collection_full}'
+            # Two-level: "C2:CGP" or "M3:GTRD"
+            main_name = collection_map.get(parts[0], parts[0])
+            sub_name = collection_map.get(parts[1], collection_full)
+            collection_display = f'{parts[0]}: {main_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{parts[1]}: {sub_name}'
         else:
-            # Three-level: "C2:CP:KEGG_MEDICUS"
-            main_name = collection_map.get(parts[0], 'Curated')
-            mid_name = collection_map.get(parts[1], 'Canonical Pathways')
+            # Three-level: "C2:CP:KEGG_MEDICUS" or "C3:MIR:MIR_LEGACY"
+            main_name = collection_map.get(parts[0], parts[0])
+            mid_name = collection_map.get(parts[1], parts[1])
             full_sub = ':'.join(parts[1:])
             collection_display = f'{parts[0]}: {main_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{parts[1]}: {mid_name}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{full_sub}: {collection_full}'
 
@@ -434,6 +472,8 @@ def main():
     parser.add_argument('--resume', action='store_true', help='Skip generating files that already exist')
     parser.add_argument('--output', type=str, help='Path to the output directory (default: msigdb)')
     parser.add_argument('--geneset', type=str, help='Generate a specific gene set by name (e.g., ZNF320_TARGET_GENES)')
+
+    args = parser.parse_args()
 
     # Determine which species to process
     process_human = args.human or not args.mouse  # Process human if --human or neither flag is set
