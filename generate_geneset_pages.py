@@ -433,7 +433,7 @@ def main():
     parser.add_argument('--mouse', action='store_true', help='Generate only mouse gene sets')
     parser.add_argument('--resume', action='store_true', help='Skip generating files that already exist')
     parser.add_argument('--output', type=str, help='Path to the output directory (default: msigdb)')
-    args = parser.parse_args()
+    parser.add_argument('--geneset', type=str, help='Generate a specific gene set by name (e.g., ZNF320_TARGET_GENES)')
 
     # Determine which species to process
     process_human = args.human or not args.mouse  # Process human if --human or neither flag is set
@@ -459,56 +459,56 @@ def main():
     skipped_files = 0
 
     # Process human gene sets
-    if process_human and human_input_path.exists():
-        logger.info(f'Processing human gene sets from {human_input_path}')
-        for yaml_file in human_input_path.glob('*.yaml'):
-            with open(yaml_file, 'r') as f:
-                data = yaml.safe_load(f)
+    # If --geneset is specified, process only that specific gene set
+    if args.geneset:
+        geneset_name = args.geneset
 
-            standard_name = data.get('standard_name', yaml_file.stem)
-            output_file = human_output_path / f'{standard_name}.html'
+        # Process human gene set if applicable
+        if process_human:
+            yaml_file = human_input_path / f'{geneset_name}.yaml'
+            if yaml_file.exists():
+                logger.info(f'Processing human gene set: {geneset_name}')
+                with open(yaml_file, 'r') as f:
+                    data = yaml.safe_load(f)
 
-            # Skip if file exists and --resume is set
-            if args.resume and output_file.exists():
-                skipped_files += 1
-                continue
+                standard_name = data.get('standard_name', geneset_name)
+                output_file = human_output_path / f'{standard_name}.html'
 
-            html_content = generate_html(data, 'human')
+                html_content = generate_html(data, 'human')
 
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
 
-            total_files += 1
-            if args.limit and total_files >= args.limit:
-                break
-            if total_files % 100 == 0:
-                logger.info(f'  Processed {total_files} files...')
+                logger.info(f'Generated: {output_file}')
+                total_files += 1
+            elif process_human:
+                logger.warning(f'Human gene set not found: {yaml_file}')
 
-    # Process mouse gene sets
-    if process_mouse and mouse_input_path.exists() and (not args.limit or total_files < args.limit):
-        logger.info(f'Processing mouse gene sets from {mouse_input_path}')
-        for yaml_file in mouse_input_path.glob('*.yaml'):
-            with open(yaml_file, 'r') as f:
-                data = yaml.safe_load(f)
+        # Process mouse gene set if applicable
+        if process_mouse:
+            yaml_file = mouse_input_path / f'{geneset_name}.yaml'
+            if yaml_file.exists():
+                logger.info(f'Processing mouse gene set: {geneset_name}')
+                with open(yaml_file, 'r') as f:
+                    data = yaml.safe_load(f)
 
-            standard_name = data.get('standard_name', yaml_file.stem)
-            output_file = mouse_output_path / f'{standard_name}.html'
+                standard_name = data.get('standard_name', geneset_name)
+                output_file = mouse_output_path / f'{standard_name}.html'
 
-            # Skip if file exists and --resume is set
-            if args.resume and output_file.exists():
-                skipped_files += 1
-                continue
+                html_content = generate_html(data, 'mouse')
 
-            html_content = generate_html(data, 'mouse')
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
 
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
+                logger.info(f'Generated: {output_file}')
+                total_files += 1
+            elif process_mouse:
+                logger.warning(f'Mouse gene set not found: {yaml_file}')
 
-            total_files += 1
-            if args.limit and total_files >= args.limit:
-                break
-            if total_files % 100 == 0:
-                logger.info(f'  Processed {total_files} files...')
+        if total_files == 0:
+            logger.error(f'Gene set "{geneset_name}" not found for the specified species')
+        return
+
 
     logger.info(f'Successfully generated {total_files} HTML files')
     if args.resume and skipped_files > 0:
