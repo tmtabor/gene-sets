@@ -14,6 +14,22 @@ from collections import defaultdict
 import argparse
 
 
+# Gene sets that the MSigDB website excludes from "related gene sets from same publication" lists
+# These are specific M3:GTRD mouse gene sets that appear to be filtered out on the website
+EXCLUDED_FROM_RELATED_GENE_SETS = {
+    # 'AEBP2_TARGET_GENES',
+    # 'ARID1A_TARGET_GENES',
+    # 'BRWD1_TARGET_GENES',
+    # 'CARM1_TARGET_GENES',
+    # 'HOXA13_TARGET_GENES',
+    # 'IRF7_TARGET_GENES',
+    # 'NFIL3_TARGET_GENES',
+    # 'POU3F1_TARGET_GENES',
+    # 'USP7_TARGET_GENES',
+    # 'ZFP992_TARGET_GENES',
+}
+
+
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -276,7 +292,7 @@ class DataCache:
         if not publication_id or publication_id not in self.gene_sets_by_publication:
             return []
         return [gs['name'] for gs in self.gene_sets_by_publication[publication_id]
-                if gs['id'] != gene_set_id]
+                if gs['id'] != gene_set_id and gs['name'] not in EXCLUDED_FROM_RELATED_GENE_SETS]
 
     def get_related_by_authors(self, gene_set_id: int, publication_id: int) -> List[str]:
         """Get gene sets from same authors (excluding those from same publication)."""

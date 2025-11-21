@@ -303,7 +303,19 @@ def generate_html(data, species):
     systematic_name = data.get('systematic_name', '')
     brief_description = data.get('brief_description', '')
     full_description = data.get('full_description', '')
-    collection = data.get('collection', {})
+
+    # Normalize collection - handle both string and dict formats
+    collection_raw = data.get('collection', {})
+    if isinstance(collection_raw, dict):
+        collection_name = collection_raw.get('name', '')
+        collection_full = collection_raw.get('full_name', '')
+    elif isinstance(collection_raw, str):
+        collection_name = collection_raw
+        collection_full = ''
+    else:
+        collection_name = ''
+        collection_full = ''
+
     source_publication = data.get('source_publication', {})
     exact_source = data.get('exact_source', '')
     related_gene_sets = data.get('related_gene_sets', {})
@@ -338,9 +350,6 @@ def generate_html(data, species):
     pub_link = f'<a target="_blank" href="https://pubmed.ncbi.nlm.nih.gov/{pmid}">Pubmed {pmid}</a>&nbsp;&nbsp;&nbsp;Authors: {authors}' if pmid else '&nbsp;'
 
     # Build collection display - handle full 3-level hierarchy
-    collection_name = collection.get('name', '')
-    collection_full = collection.get('full_name', '')
-
     if not collection_name:
         collection_display = '&nbsp;'
     else:
