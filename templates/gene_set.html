@@ -47,11 +47,11 @@
   }
 </script>
 
-
+{% if has_other_species_geneset %}
   <p style="text-indent: 50px;">
-    <i>For the {{ other_species_title }} gene set with the same name, see <a href="msigdb/{{ other_species }}/geneset/{{ standard_name }}.html">{{ standard_name }}</a></i>
+    <i>For the {{ other_species_title }} gene set with the same name, see <a href="{{ link_prefix }}msigdb/{{ other_species }}/geneset/{{ standard_name }}.html">{{ standard_name }}</a></i>
   </p>
-
+{% endif %}
 
 
 <br>
@@ -96,7 +96,7 @@
     <td>{{ external_links_html|safe }}</td>
   </tr>
   <tr>
-    <th>Filtered by similarity <a href="msigdb/help_annotations.jsp#filteredBySimilarity"><span class="info_icon {{ species_class }}" id="filteredBySimilarityHelp" title="Gene set candidates that were excluded from MSigDB as highly similar to this selected set.">?</span></a>
+    <th>Filtered by similarity <a href="{{ link_prefix }}msigdb/help_annotations.jsp#filteredBySimilarity"><span class="info_icon {{ species_class }}" id="filteredBySimilarityHelp" title="Gene set candidates that were excluded from MSigDB as highly similar to this selected set.">?</span></a>
       </th>
     <script type="text/javascript">
       contextIds[q++] = "filteredBySimilarityHelp";
@@ -125,10 +125,10 @@
   </tr>
   <tr>
     <th>Download gene set</th>
-    <td>format: <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=grp">grp</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=gmt">gmt</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=xml">xml</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=json">json</a> | <a href="msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=TSV">TSV metadata</a></td>
+    <td>format: <a href="{{ link_prefix }}msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=grp">grp</a> | <a href="{{ link_prefix }}msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=gmt">gmt</a> | <a href="{{ link_prefix }}msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=xml">xml</a> | <a href="{{ link_prefix }}msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=json">json</a> | <a href="{{ link_prefix }}msigdb/{{ species }}/download_geneset.jsp?geneSetName={{ standard_name }}&amp;fileType=TSV">TSV metadata</a></td>
   </tr>
   <tr>
-    <th>Compute overlaps <a href="msigdb/help_annotations.jsp#overlap"><span class="info_icon {{ species_class }}" id="overlapHelp" title="Computes overlaps with gene sets in the selected MSigDB gene set collection">?</span></a></th>
+    <th>Compute overlaps <a href="{{ link_prefix }}msigdb/help_annotations.jsp#overlap"><span class="info_icon {{ species_class }}" id="overlapHelp" title="Computes overlaps with gene sets in the selected MSigDB gene set collection">?</span></a></th>
     <script type="text/javascript">
       contextIds[q++] = "overlapHelp";
     </script>
@@ -137,7 +137,7 @@
     </td>
   </tr>
   <tr>
-    <th>Compendia expression profiles <a href="msigdb/help_annotations.jsp#compendia"><span class="info_icon {{ species_class }}" id="compendiaHelp" title="Displays this gene set's expression profile based on the selected compendium of expression data.">?</span></a></th>
+    <th>Compendia expression profiles <a href="{{ link_prefix }}msigdb/help_annotations.jsp#compendia"><span class="info_icon {{ species_class }}" id="compendiaHelp" title="Displays this gene set's expression profile based on the selected compendium of expression data.">?</span></a></th>
     <script type="text/javascript">
       contextIds[q++] = "compendiaHelp";
     </script>
@@ -149,20 +149,20 @@
     <th>Advanced query</th>
     <td>
 
-      <a href="msigdb/{{ species }}/annotate.jsp?geneSetName={{ standard_name }}">Further investigate</a>
+      <a href="{{ link_prefix }}msigdb/{{ species }}/annotate.jsp?geneSetName={{ standard_name }}">Further investigate</a>
         these {{ num_genes_mapped }} genes
 
     </td>
   </tr>
   {% if species == 'human' %}
   <tr>
-    <th>Gene families <a href="msigdb/help_annotations.jsp#families"><span class="info_icon {{ species_class }}" id="geneFamiliesHelp" title="Categorizes members of this gene set by gene families.">?</span></a></th>
+    <th>Gene families <a href="{{ link_prefix }}msigdb/help_annotations.jsp#families"><span class="info_icon {{ species_class }}" id="geneFamiliesHelp" title="Categorizes members of this gene set by gene families.">?</span></a></th>
     <script type="text/javascript">
       contextIds[q++] = "geneFamiliesHelp";
     </script>
     <td>
 
-      <a href="msigdb/{{ species }}/gene_families.jsp?geneSetName={{ standard_name }}">Categorize</a> these
+      <a href="{{ link_prefix }}msigdb/{{ species }}/gene_families.jsp?geneSetName={{ standard_name }}">Categorize</a> these
       {{ num_genes_mapped }} genes by gene family
 
     </td>
@@ -191,7 +191,7 @@
 
 
 <br><p>
-See <a href="msigdb_license_terms.jsp">MSigDB license terms here</a>. Please note that certain gene sets
+See <a href="{{ link_prefix }}msigdb_license_terms.jsp">MSigDB license terms here</a>. Please note that certain gene sets
 have special access terms.</p>
 <br>
 

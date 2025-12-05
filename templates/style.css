@@ -404,6 +404,10 @@ input.checkbox { /*** put this class inside the Input tag ***/
   text-decoration: underline;
 }
 
+#geneListing table {
+  font-size: 1.0em;
+}
+
 #contentwrapper ul {
   margin: 0px 0px 18px;
   padding: 0px;

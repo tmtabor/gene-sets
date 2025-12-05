@@ -32,7 +32,7 @@ def process_gene_links(text):
     return re.sub(pattern, replacement, text)
 
 
-def build_related_gene_sets(related_gene_sets, species):
+def build_related_gene_sets(related_gene_sets, species, link_prefix=''):
     """Build the related gene sets HTML section"""
     if not related_gene_sets:
         return '''      
@@ -57,7 +57,7 @@ def build_related_gene_sets(related_gene_sets, species):
               ''')
         for geneset_name in from_pub:
             html_parts.append(f'''
-                <a href="msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
+                <a href="{link_prefix}msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
               ''')
         html_parts.append('''
             </div>
@@ -78,7 +78,7 @@ def build_related_gene_sets(related_gene_sets, species):
               ''')
         for geneset_name in from_authors:
             html_parts.append(f'''
-                <a href="msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
+                <a href="{link_prefix}msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
               ''')
         html_parts.append('''
             </div>
@@ -148,7 +148,7 @@ def build_members_table(members):
     return table_html
 
 
-def build_overlap_links(standard_name, species, species_class):
+def build_overlap_links(standard_name, species, species_class, link_prefix=''):
     """Build compute overlaps section"""
     collections = [
         ('MH', 'Hallmark', []),
@@ -188,7 +188,7 @@ def build_overlap_links(standard_name, species, species_class):
     def build_collection_links(items, indent=0):
         result = []
         spaces = '&nbsp;' * (indent * 6)
-        for item in items:
+        for i, item in enumerate(items):
             if len(item) == 2:
                 code, name = item
                 subcollections = []
@@ -197,10 +197,9 @@ def build_overlap_links(standard_name, species, species_class):
             else:
                 continue
 
-            prefix = '<br>\n' if indent == 0 and result else ''
             link_class = 'spanLink' if indent > 0 else ''
             class_attr = f' class="{link_class}"' if link_class else ''
-            result.append(f'''{prefix}          {spaces}<a{class_attr} href="msigdb/{species}/compute_overlaps.jsp?geneSetName={standard_name}&amp;collection={code}"><nobr>{code}: {name}</nobr></a>
+            result.append(f'''          {spaces}<a{class_attr} href="{link_prefix}msigdb/{species}/compute_overlaps.jsp?geneSetName={standard_name}&amp;collection={code}"><nobr>{code}: {name}</nobr></a><br>
 ''')
             if subcollections:
                 result.extend(build_collection_links(subcollections, indent + 1))
@@ -213,18 +212,18 @@ def build_overlap_links(standard_name, species, species_class):
     return html
 
 
-def build_compendia_links(standard_name, species):
+def build_compendia_links(standard_name, species, link_prefix=''):
     """Build compendia expression profiles section"""
     if species == 'mouse':
         return f'''
       
       NG-CHM interactive heatmaps<br>
       (<i>Please note that clustering takes a few seconds</i>)<br>
-      <a class="ext_link {species}" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=mouseTranscriptomicBodyMap" target="_blank">
+      <a class="ext_link {species}" href="{link_prefix}msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=mouseTranscriptomicBodyMap" target="_blank">
         <nobr>Mouse Transcriptomic BodyMap compendium</nobr>
       </a>
       <br><br>Legacy heatmaps (PNG)<br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=mouseTranscriptomicBodyMap">
+      <a href="{link_prefix}msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=mouseTranscriptomicBodyMap">
         <nobr>Mouse Transcriptomic BodyMap compendium</nobr>
       </a>
       '''
@@ -234,29 +233,29 @@ def build_compendia_links(standard_name, species):
       
       NG-CHM interactive heatmaps<br>
       (<i>Please note that clustering takes a few seconds</i>)<br>
-      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex" target="_blank">
+      <a class="ext_link" href="{link_prefix}msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex" target="_blank">
         <nobr>GTEx compendium</nobr>
       </a><br>
-      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman" target="_blank">
+      <a class="ext_link" href="{link_prefix}msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman" target="_blank">
         <nobr>Human tissue compendium (Novartis)</nobr>
       </a><br>
-      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues" target="_blank">
+      <a class="ext_link" href="{link_prefix}msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues" target="_blank">
         <nobr>Global Cancer Map (Broad Institute)</nobr>
       </a><br>
-      <a class="ext_link" href="msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines" target="_blank">
+      <a class="ext_link" href="{link_prefix}msigdb/{species}/ngchmCompendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines" target="_blank">
         <nobr>NCI-60 cell lines (National Cancer Institute)</nobr>
       </a>
       <br><br>Legacy heatmaps (PNG)<br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex">
+      <a href="{link_prefix}msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=gtex">
         <nobr>GTEx compendium</nobr>
       </a><br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman">
+      <a href="{link_prefix}msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=novartisHuman">
         <nobr>Human tissue compendium (Novartis)</nobr>
       </a><br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues">
+      <a href="{link_prefix}msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerTissues">
         <nobr>Global Cancer Map (Broad Institute)</nobr>
       </a><br>
-      <a href="msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines">
+      <a href="{link_prefix}msigdb/{species}/compendium.jsp?geneSetName={standard_name}&amp;compendiumId=cancerCellLines">
         <nobr>NCI-60 cell lines (National Cancer Institute)</nobr>
       </a>
       '''
@@ -294,7 +293,7 @@ def build_dataset_references(dataset_references):
     return html
 
 
-def generate_html(data, species):
+def generate_html(data, species, link_prefix='', other_species_gene_sets=None):
     """Generate HTML content from YAML data using Jinja2 template"""
     species_class = species
     species_title = 'Mouse' if species == 'mouse' else 'Human'
@@ -318,6 +317,9 @@ def generate_html(data, species):
 
     source_publication = data.get('source_publication', {})
     exact_source = data.get('exact_source', '')
+    # Handle None or empty exact_source - leave blank instead of showing "None"
+    if exact_source is None or exact_source == 'None':
+        exact_source = ''
     related_gene_sets = data.get('related_gene_sets', {})
     source_species = data.get('source_species', '')
     contributed_by = data.get('contributed_by', '')
@@ -332,16 +334,21 @@ def generate_html(data, species):
     brief_html = process_gene_links(brief_description)
 
     # Build sections
-    related_html = build_related_gene_sets(related_gene_sets, species)
+    related_html = build_related_gene_sets(related_gene_sets, species, link_prefix)
     version_history_html = build_version_history(version_history)
     members_html = build_members_table(members)
-    overlap_links = build_overlap_links(standard_name, species, species_class)
-    compendia_links = build_compendia_links(standard_name, species)
+    overlap_links = build_overlap_links(standard_name, species, species_class, link_prefix)
+    compendia_links = build_compendia_links(standard_name, species, link_prefix)
     dataset_references = build_dataset_references(data.get('dataset_references', []))
 
     # Cross-species info
     other_species = 'human' if species == 'mouse' else 'mouse'
     other_species_title = 'Human' if species == 'mouse' else 'Mouse'
+
+    # Check if corresponding gene set exists in other species
+    has_other_species_geneset = False
+    if other_species_gene_sets is not None:
+        has_other_species_geneset = standard_name in other_species_gene_sets
 
     # Build publication link
     pmid = source_publication.get('pmid', '')
@@ -466,7 +473,9 @@ def generate_html(data, species):
         members_html=members_html,
         version_history_html=version_history_html,
         other_species=other_species,
-        other_species_title=other_species_title
+        other_species_title=other_species_title,
+        has_other_species_geneset=has_other_species_geneset,
+        link_prefix=link_prefix
     )
 
 
@@ -481,8 +490,14 @@ def main():
     parser.add_argument('--resume', action='store_true', help='Skip generating files that already exist')
     parser.add_argument('--output', type=str, help='Path to the output directory (default: msigdb)')
     parser.add_argument('--geneset', type=str, help='Generate a specific gene set by name (e.g., ZNF320_TARGET_GENES)')
+    parser.add_argument('--link-prefix', type=str, default='', help='Prefix for all links (e.g., https://www.gsea-msigdb.org/)')
 
     args = parser.parse_args()
+
+    # Normalize link prefix - ensure it ends with / if provided
+    link_prefix = args.link_prefix
+    if link_prefix and not link_prefix.endswith('/'):
+        link_prefix += '/'
 
     # Determine which species to process
     process_human = args.human or not args.mouse  # Process human if --human or neither flag is set
@@ -504,6 +519,15 @@ def main():
     if process_mouse:
         mouse_output_path.mkdir(parents=True, exist_ok=True)
 
+    # Build index of gene sets for cross-species checking
+    human_gene_sets = set()
+    mouse_gene_sets = set()
+
+    for yaml_file in human_input_path.glob('*.yaml'):
+        human_gene_sets.add(yaml_file.stem)
+    for yaml_file in mouse_input_path.glob('*.yaml'):
+        mouse_gene_sets.add(yaml_file.stem)
+
     total_files = 0
     skipped_files = 0
 
@@ -523,7 +547,7 @@ def main():
                 standard_name = data.get('standard_name', geneset_name)
                 output_file = human_output_path / f'{standard_name}.html'
 
-                html_content = generate_html(data, 'human')
+                html_content = generate_html(data, 'human', link_prefix, mouse_gene_sets)
 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
@@ -544,7 +568,7 @@ def main():
                 standard_name = data.get('standard_name', geneset_name)
                 output_file = mouse_output_path / f'{standard_name}.html'
 
-                html_content = generate_html(data, 'mouse')
+                html_content = generate_html(data, 'mouse', link_prefix, human_gene_sets)
 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
