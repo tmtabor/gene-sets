@@ -534,11 +534,27 @@ def process_species(species_code: str, db_path: str, xml_history_file: Path, out
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Get all gene set IDs
-    cursor.execute("SELECT id FROM gene_set ORDER BY id")
+    # Get all gene set IDs, excluding those with THRESHOLD_EXCLUDED archive policy
+    cursor.execute("""
+        SELECT id FROM gene_set 
+        WHERE id NOT IN (
+            SELECT gene_set_id FROM gene_set_archive_policy 
+            WHERE policy_code = 'THRESHOLD_EXCLUDED'
+        )
+        ORDER BY id
+    """)
     gene_set_ids = [row[0] for row in cursor.fetchall()]
 
     print(f"Found {len(gene_set_ids)} gene sets to export")
+
+    # Also report how many were excluded
+    cursor.execute("""
+        SELECT COUNT(*) FROM gene_set_archive_policy 
+        WHERE policy_code = 'THRESHOLD_EXCLUDED'
+    """)
+    excluded_count = cursor.fetchone()[0]
+    if excluded_count > 0:
+        print(f"  Excluded {excluded_count} gene sets with THRESHOLD_EXCLUDED archive policy")
 
     if limit:
         print(f"  Limiting to {limit} gene sets")
