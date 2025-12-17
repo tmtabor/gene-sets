@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 import logging
 import argparse
+import shutil
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +58,7 @@ def build_related_gene_sets(related_gene_sets, species, link_prefix=''):
               ''')
         for geneset_name in from_pub:
             html_parts.append(f'''
-                <a href="{link_prefix}msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
+                <a href="{geneset_name}.html">{geneset_name}</a>
               ''')
         html_parts.append('''
             </div>
@@ -78,7 +79,7 @@ def build_related_gene_sets(related_gene_sets, species, link_prefix=''):
               ''')
         for geneset_name in from_authors:
             html_parts.append(f'''
-                <a href="{link_prefix}msigdb/{species}/geneset/{geneset_name}.html">{geneset_name}</a>
+                <a href="{geneset_name}.html">{geneset_name}</a>
               ''')
         html_parts.append('''
             </div>
@@ -293,7 +294,180 @@ def build_dataset_references(dataset_references):
     return html
 
 
-def generate_html(data, species, link_prefix='', other_species_gene_sets=None):
+def build_collection_hierarchy(yaml_files, species):
+    """Build a hierarchical structure of collections from YAML files"""
+    collection_map = {
+        # Human collections
+        'C1': 'Positional',
+        'C2': 'Curated',
+        'C3': 'Regulatory Target',
+        'C5': 'Ontology',
+        'C7': 'Immunologic Signature',
+        'C8': 'Cell Type Signature',
+        'CH': 'Hallmark',
+        # Mouse collections
+        'M1': 'Positional',
+        'M2': 'Curated',
+        'M3': 'Regulatory Target',
+        'M5': 'Ontology',
+        'M7': 'Immunologic Signature',
+        'M8': 'Cell Type Signature',
+        'MH': 'Hallmark',
+        # Subcollections
+        'CP': 'Canonical Pathways',
+        'CGP': 'Chemical and Genetic Perturbations',
+        'GO': 'Gene Ontology',
+        'MIR': 'microRNA Targets',
+        'TFT': 'Transcription Factor Targets',
+        'GTRD': 'GTRD',
+        'MIRDB': 'miRDB',
+        # GO subcollections
+        'GO:BP': 'GO Biological Process',
+        'GO:CC': 'GO Cellular Component',
+        'GO:MF': 'GO Molecular Function',
+        # CP subcollections
+        'CP:BIOCARTA': 'BioCarta Pathways',
+        'CP:KEGG': 'KEGG Pathways',
+        'CP:KEGG_MEDICUS': 'KEGG Medicus',
+        'CP:PID': 'PID Pathways',
+        'CP:REACTOME': 'Reactome Pathways',
+        'CP:WIKIPATHWAYS': 'WikiPathways',
+        # MIR subcollections
+        'MIR:MIR_LEGACY': 'MIR_Legacy',
+        'MIR:MIRDB': 'miRDB',
+        # TFT subcollections
+        'TFT:GTRD': 'GTRD',
+        'TFT:TFT_LEGACY': 'TFT_Legacy',
+        # Other
+        'MPT': 'MP Tumor',
+    }
+    
+    hierarchy = {}
+    collection_gene_sets = {}  # Maps collection keys to list of gene sets
+    
+    for yaml_file in yaml_files:
+        try:
+            with open(yaml_file, 'r') as f:
+                data = yaml.safe_load(f)
+            
+            standard_name = data.get('standard_name', yaml_file.stem)
+            collection_raw = data.get('collection', {})
+            
+            if isinstance(collection_raw, dict):
+                collection_name = collection_raw.get('name', '')
+            elif isinstance(collection_raw, str):
+                collection_name = collection_raw
+            else:
+                continue
+            
+            if not collection_name:
+                continue
+            
+            parts = collection_name.split(':')
+            
+            # Track gene sets for each collection level
+            for i in range(len(parts)):
+                coll_key = ':'.join(parts[:i+1])
+                if coll_key not in collection_gene_sets:
+                    collection_gene_sets[coll_key] = []
+                collection_gene_sets[coll_key].append(standard_name)
+            
+            # Build hierarchy
+            if len(parts) == 1:
+                # Top-level collection
+                if parts[0] not in hierarchy:
+                    hierarchy[parts[0]] = {
+                        'name': collection_map.get(parts[0], parts[0]),
+                        'count': 0,
+                        'subcollections': {}
+                    }
+                hierarchy[parts[0]]['count'] += 1
+                
+            elif len(parts) == 2:
+                # Second-level collection
+                if parts[0] not in hierarchy:
+                    hierarchy[parts[0]] = {
+                        'name': collection_map.get(parts[0], parts[0]),
+                        'count': 0,
+                        'subcollections': {}
+                    }
+                
+                sub_key = parts[1]
+                if sub_key not in hierarchy[parts[0]]['subcollections']:
+                    hierarchy[parts[0]]['subcollections'][sub_key] = {
+                        'name': collection_map.get(sub_key, sub_key),
+                        'count': 0,
+                        'subcollections': {}
+                    }
+                hierarchy[parts[0]]['subcollections'][sub_key]['count'] += 1
+                hierarchy[parts[0]]['count'] += 1
+                
+            else:
+                # Third-level collection
+                if parts[0] not in hierarchy:
+                    hierarchy[parts[0]] = {
+                        'name': collection_map.get(parts[0], parts[0]),
+                        'count': 0,
+                        'subcollections': {}
+                    }
+                
+                sub_key = parts[1]
+                if sub_key not in hierarchy[parts[0]]['subcollections']:
+                    hierarchy[parts[0]]['subcollections'][sub_key] = {
+                        'name': collection_map.get(sub_key, sub_key),
+                        'count': 0,
+                        'subcollections': {}
+                    }
+                
+                subsub_key = ':'.join(parts[1:])
+                if subsub_key not in hierarchy[parts[0]]['subcollections'][sub_key]['subcollections']:
+                    hierarchy[parts[0]]['subcollections'][sub_key]['subcollections'][subsub_key] = {
+                        'name': collection_map.get(subsub_key, collection_name),
+                        'count': 0
+                    }
+                hierarchy[parts[0]]['subcollections'][sub_key]['subcollections'][subsub_key]['count'] += 1
+                hierarchy[parts[0]]['subcollections'][sub_key]['count'] += 1
+                hierarchy[parts[0]]['count'] += 1
+                
+        except Exception as e:
+            logger.warning(f'Error processing {yaml_file}: {e}')
+            continue
+    
+    return hierarchy, collection_gene_sets
+
+
+def generate_collection_index(collection_key, gene_sets, species, link_prefix='', version_tag=None):
+    """Generate HTML for a collection index page"""
+    species_class = species
+    species_title = 'Mouse' if species == 'mouse' else 'Human'
+    
+    # Sort gene sets alphabetically
+    sorted_gene_sets = sorted(gene_sets)
+    
+    template = jinja_env.get_template('collection_index.html')
+    return template.render(
+        species=species,
+        species_class=species_class,
+        species_title=species_title,
+        collection_key=collection_key,
+        gene_sets=sorted_gene_sets,
+        link_prefix=link_prefix,
+        version_tag=version_tag
+    )
+
+
+def generate_overall_index(human_hierarchy, mouse_hierarchy, link_prefix='', version_tag=None):
+    """Generate HTML for the overall index page"""
+    template = jinja_env.get_template('overall_index.html')
+    return template.render(
+        human_collections=human_hierarchy if human_hierarchy else None,
+        mouse_collections=mouse_hierarchy if mouse_hierarchy else None,
+        link_prefix=link_prefix,
+        version_tag=version_tag
+    )
+
+
+def generate_html(data, species, link_prefix='', other_species_gene_sets=None, version_tag=None):
     """Generate HTML content from YAML data using Jinja2 template"""
     species_class = species
     species_title = 'Mouse' if species == 'mouse' else 'Human'
@@ -475,7 +649,8 @@ def generate_html(data, species, link_prefix='', other_species_gene_sets=None):
         other_species=other_species,
         other_species_title=other_species_title,
         has_other_species_geneset=has_other_species_geneset,
-        link_prefix=link_prefix
+        link_prefix=link_prefix,
+        version_tag=version_tag
     )
 
 
@@ -489,8 +664,11 @@ def main():
     parser.add_argument('--mouse', action='store_true', help='Generate only mouse gene sets')
     parser.add_argument('--resume', action='store_true', help='Skip generating files that already exist')
     parser.add_argument('--output', type=str, help='Path to the output directory (default: msigdb)')
+    parser.add_argument('--input', type=str, help='Path to the input directory containing YAML files (default: outputs/)')
     parser.add_argument('--geneset', type=str, help='Generate a specific gene set by name (e.g., ZNF320_TARGET_GENES)')
     parser.add_argument('--link-prefix', type=str, default='', help='Prefix for all links (e.g., https://www.gsea-msigdb.org/)')
+    parser.add_argument('--version', type=str, help='Version tag to display on each gene set page (e.g., v2025.1.Hs)')
+    parser.add_argument('--index', action='store_true', help='Generate index pages (default: not generated)')
 
     args = parser.parse_args()
 
@@ -499,13 +677,17 @@ def main():
     if link_prefix and not link_prefix.endswith('/'):
         link_prefix += '/'
 
+    version_tag = args.version
+    generate_indices = args.index
+
     # Determine which species to process
     process_human = args.human or not args.mouse  # Process human if --human or neither flag is set
     process_mouse = args.mouse or not args.human  # Process mouse if --mouse or neither flag is set
 
-    # Define paths
-    human_input_path = Path('outputs/human')
-    mouse_input_path = Path('outputs/mouse')
+    # Define paths - use custom input path if provided
+    input_base = Path(args.input) if args.input else Path('outputs')
+    human_input_path = input_base / 'human'
+    mouse_input_path = input_base / 'mouse'
 
     # Use custom output path if provided
     output_base = Path(args.output) if args.output else Path('msigdb')
@@ -531,7 +713,6 @@ def main():
     total_files = 0
     skipped_files = 0
 
-    # Process human gene sets
     # If --geneset is specified, process only that specific gene set
     if args.geneset:
         geneset_name = args.geneset
@@ -547,7 +728,7 @@ def main():
                 standard_name = data.get('standard_name', geneset_name)
                 output_file = human_output_path / f'{standard_name}.html'
 
-                html_content = generate_html(data, 'human', link_prefix, mouse_gene_sets)
+                html_content = generate_html(data, 'human', link_prefix, mouse_gene_sets, version_tag)
 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
@@ -568,7 +749,7 @@ def main():
                 standard_name = data.get('standard_name', geneset_name)
                 output_file = mouse_output_path / f'{standard_name}.html'
 
-                html_content = generate_html(data, 'mouse', link_prefix, human_gene_sets)
+                html_content = generate_html(data, 'mouse', link_prefix, human_gene_sets, version_tag)
 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write(html_content)
@@ -582,6 +763,142 @@ def main():
             logger.error(f'Gene set "{geneset_name}" not found for the specified species')
         return
 
+    # Process all gene sets
+    logger.info('Starting gene set page generation...')
+    
+    # Collect all YAML files to process
+    human_yaml_files = list(human_input_path.glob('*.yaml')) if process_human else []
+    mouse_yaml_files = list(mouse_input_path.glob('*.yaml')) if process_mouse else []
+    
+    # Apply limit if specified
+    if args.limit:
+        total_available = len(human_yaml_files) + len(mouse_yaml_files)
+        if args.limit < total_available:
+            logger.info(f'Limiting to {args.limit} files (out of {total_available} available)')
+            # Distribute limit across species proportionally
+            if process_human and process_mouse:
+                human_ratio = len(human_yaml_files) / total_available
+                human_limit = int(args.limit * human_ratio)
+                mouse_limit = args.limit - human_limit
+                human_yaml_files = human_yaml_files[:human_limit]
+                mouse_yaml_files = mouse_yaml_files[:mouse_limit]
+            elif process_human:
+                human_yaml_files = human_yaml_files[:args.limit]
+            else:
+                mouse_yaml_files = mouse_yaml_files[:args.limit]
+    
+    # Process human gene sets
+    if process_human and human_yaml_files:
+        logger.info(f'Processing {len(human_yaml_files)} human gene sets...')
+        for yaml_file in human_yaml_files:
+            try:
+                with open(yaml_file, 'r') as f:
+                    data = yaml.safe_load(f)
+                
+                standard_name = data.get('standard_name', yaml_file.stem)
+                output_file = human_output_path / f'{standard_name}.html'
+                
+                # Check if we should skip this file
+                if args.resume and output_file.exists():
+                    skipped_files += 1
+                    continue
+                
+                html_content = generate_html(data, 'human', link_prefix, mouse_gene_sets, version_tag)
+                
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                
+                total_files += 1
+                
+                if total_files % 100 == 0:
+                    logger.info(f'  Generated {total_files} pages so far...')
+                    
+            except Exception as e:
+                logger.error(f'Error processing {yaml_file}: {e}')
+                continue
+    
+    # Process mouse gene sets
+    if process_mouse and mouse_yaml_files:
+        logger.info(f'Processing {len(mouse_yaml_files)} mouse gene sets...')
+        for yaml_file in mouse_yaml_files:
+            try:
+                with open(yaml_file, 'r') as f:
+                    data = yaml.safe_load(f)
+                
+                standard_name = data.get('standard_name', yaml_file.stem)
+                output_file = mouse_output_path / f'{standard_name}.html'
+                
+                # Check if we should skip this file
+                if args.resume and output_file.exists():
+                    skipped_files += 1
+                    continue
+                
+                html_content = generate_html(data, 'mouse', link_prefix, human_gene_sets, version_tag)
+                
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+                
+                total_files += 1
+                
+                if total_files % 100 == 0:
+                    logger.info(f'  Generated {total_files} pages so far...')
+                    
+            except Exception as e:
+                logger.error(f'Error processing {yaml_file}: {e}')
+                continue
+    
+    # Generate index pages if requested
+    if generate_indices:
+        logger.info('Generating index pages...')
+        
+        human_hierarchy = {}
+        mouse_hierarchy = {}
+        human_collection_gene_sets = {}
+        mouse_collection_gene_sets = {}
+        
+        # Build hierarchies
+        if process_human and human_yaml_files:
+            logger.info('Building human collection hierarchy...')
+            human_hierarchy, human_collection_gene_sets = build_collection_hierarchy(
+                human_yaml_files, 'human'
+            )
+        
+        if process_mouse and mouse_yaml_files:
+            logger.info('Building mouse collection hierarchy...')
+            mouse_hierarchy, mouse_collection_gene_sets = build_collection_hierarchy(
+                mouse_yaml_files, 'mouse'
+            )
+        
+        # Generate overall index
+        overall_index_path = output_base / 'index.html'
+        logger.info(f'Generating overall index: {overall_index_path}')
+        overall_html = generate_overall_index(human_hierarchy, mouse_hierarchy, link_prefix, version_tag)
+        with open(overall_index_path, 'w', encoding='utf-8') as f:
+            f.write(overall_html)
+        
+        # Generate collection index pages for human
+        if process_human and human_collection_gene_sets:
+            logger.info(f'Generating {len(human_collection_gene_sets)} human collection index pages...')
+            for collection_key, gene_sets in human_collection_gene_sets.items():
+                collection_index_path = output_base / 'human' / f'collection_{collection_key.replace(":", "_")}.html'
+                collection_html = generate_collection_index(
+                    collection_key, gene_sets, 'human', link_prefix, version_tag
+                )
+                with open(collection_index_path, 'w', encoding='utf-8') as f:
+                    f.write(collection_html)
+        
+        # Generate collection index pages for mouse
+        if process_mouse and mouse_collection_gene_sets:
+            logger.info(f'Generating {len(mouse_collection_gene_sets)} mouse collection index pages...')
+            for collection_key, gene_sets in mouse_collection_gene_sets.items():
+                collection_index_path = output_base / 'mouse' / f'collection_{collection_key.replace(":", "_")}.html'
+                collection_html = generate_collection_index(
+                    collection_key, gene_sets, 'mouse', link_prefix, version_tag
+                )
+                with open(collection_index_path, 'w', encoding='utf-8') as f:
+                    f.write(collection_html)
+        
+        logger.info('Index generation complete')
 
     logger.info(f'Successfully generated {total_files} HTML files')
     if args.resume and skipped_files > 0:
@@ -590,6 +907,18 @@ def main():
         logger.info(f'  Human gene sets: {human_output_path}')
     if process_mouse:
         logger.info(f'  Mouse gene sets: {mouse_output_path}')
+
+    # Copy style.css to output directory
+    try:
+        css_source = Path(__file__).parent / 'templates' / 'style.css'
+        if css_source.exists():
+            css_destination = output_base / 'style.css'
+            shutil.copy(css_source, css_destination)
+            logger.info(f'Copied style.css to {css_destination}')
+        else:
+            logger.warning('style.css not found, skipping copy')
+    except Exception as e:
+        logger.error(f'Error copying style.css: {e}')
 
 
 if __name__ == '__main__':

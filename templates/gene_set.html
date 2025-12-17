@@ -1,8 +1,27 @@
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="style.css">
+<link rel="stylesheet" type="text/css" href="../../style.css">
+<style>
+  .version-callout {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #333;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+</style>
 </head>
 <body>
+{% if version_tag %}
+<div class="version-callout">
+  Version: {{ version_tag }}
+</div>
+{% endif %}
 <main id="contentwrapper" class="body">
               <h1 class="{{ species_class }}">{{ species_title }} Gene Set: {{ standard_name }}
 
@@ -49,7 +68,7 @@
 
 {% if has_other_species_geneset %}
   <p style="text-indent: 50px;">
-    <i>For the {{ other_species_title }} gene set with the same name, see <a href="{{ link_prefix }}msigdb/{{ other_species }}/geneset/{{ standard_name }}.html">{{ standard_name }}</a></i>
+    <i>For the {{ other_species_title }} gene set with the same name, see <a href="../../{{ other_species }}/geneset/{{ standard_name }}.html">{{ standard_name }}</a></i>
   </p>
 {% endif %}
 
