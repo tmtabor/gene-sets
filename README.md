@@ -4,215 +4,355 @@ A toolkit for exporting MSigDB gene sets and generating static HTML pages for ea
 
 ## Overview
 
-This project provides two main tools:
+This project provides three main tools for working with MSigDB gene sets:
 
-1. **`export_gene_sets.py`** - Exports gene sets from MSigDB SQLite databases to YAML files
-2. **`generate_geneset_pages.py`** - Generates static HTML pages from YAML gene set files
+1. **`export_genesets.py`** - Exports gene sets from MSigDB SQLite databases to YAML files
+2. **`export_genesets_xml.py`** - Exports gene sets from MSigDB XML files to YAML files (alternative to SQLite-based export)
+3. **`generate_pages.py`** - Generates static HTML pages from YAML gene set files
 
-## Requirements
+The typical workflow is:
+1. Export gene sets from either SQLite databases or XML files to YAML format
+2. Generate HTML pages from the YAML files for web presentation
+
+## Installation
+
+### Requirements
 
 - Python 3.9 or higher
 - PyYAML 6.0+
+- Jinja2 3.0+
+- lxml 4.6+ (optional, for better XML error handling)
 
-Install dependencies:
+### Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-## Quick Start
+## export_genesets.py
 
-### 1. Export Gene Sets from Database
+Exports MSigDB gene sets from SQLite databases to structured YAML files. This is the primary export method for working with MSigDB database files.
 
-Export all gene sets to YAML files:
-```bash
-python3 export_gene_sets.py
-```
+### Description
 
-Export only the first 100 gene sets:
-```bash
-python3 export_gene_sets.py --limit 100
-```
-
-Export only human gene sets:
-```bash
-python3 export_gene_sets.py --human
-```
-
-### 2. Generate HTML Pages
-
-Generate HTML pages for all gene sets:
-```bash
-python3 generate_geneset_pages.py
-```
-
-Generate pages for only the first 1000 gene sets:
-```bash
-python3 generate_geneset_pages.py --limit 1000
-```
-
-Generate only mouse gene set pages:
-```bash
-python3 generate_geneset_pages.py --mouse
-```
-
-## Project Structure
-
-```
-gene-sets/
-├── export_gene_sets.py          # Export gene sets from SQLite to YAML
-├── generate_geneset_pages.py    # Generate HTML pages from YAML files
-├── requirements.txt              # Python dependencies
-├── inputs/                       # Input databases and XML files
-│   ├── msigdb_FULL_v2025.1.Hs.db.sqlite
-│   ├── msigdb_FULL_v2025.1.Mm.db.sqlite
-│   ├── msigdb_history_v2025.1.Hs.xml
-│   └── msigdb_history_v2025.1.Mm.xml
-├── outputs/                      # Generated YAML files
-│   ├── human/                    # Human gene sets (YAML)
-│   └── mouse/                    # Mouse gene sets (YAML)
-└── msigdb/                       # Generated HTML pages
-    ├── human/geneset/            # Human gene set pages
-    └── mouse/geneset/            # Mouse gene set pages
-```
-
-## export_gene_sets.py
-
-Exports MSigDB gene sets from SQLite databases to structured YAML files.
+This script reads gene set data from MSigDB SQLite database files and version history from XML files, then exports each gene set as a separate YAML file. The YAML files include comprehensive metadata such as gene members, descriptions, source publications, related gene sets, and version history.
 
 ### Usage
 
 ```bash
-python3 export_gene_sets.py [OPTIONS]
+python export_genesets.py [OPTIONS]
 ```
 
-### Options
+### Command-Line Options
 
 #### Species Selection
-- `--human` - Export only human gene sets
-- `--mouse` - Export only mouse gene sets
-- (default: exports both species)
+
+- **`--human`** - Export only human gene sets (from Hs database)
+- **`--mouse`** - Export only mouse gene sets (from Mm database)
+- If neither flag is specified, both human and mouse gene sets are exported
 
 #### Processing Control
-- `--limit N` - Limit the number of gene sets to export
-- `--resume` - Skip generating YAML files that already exist
+
+- **`--limit N`** - Limit the total number of gene sets to export across all species
+  - Example: `--limit 100` exports up to 100 gene sets total
+- **`--resume`** - Skip generating YAML files that already exist on disk
+  - Useful for resuming interrupted exports or updating only new gene sets
 
 #### Path Configuration
-- `--output PATH` - Custom output directory (default: `outputs/`)
-- `--input PATH` - Custom input directory (default: `inputs/`)
-- `--hs-db PATH` - Path to human database file
-- `--mm-db PATH` - Path to mouse database file
-- `--hs-xml PATH` - Path to human XML history file
-- `--mm-xml PATH` - Path to mouse XML history file
+
+- **`--output PATH`** - Custom output directory for YAML files
+  - Default: `outputs/`
+  - YAML files are created in `{output}/human/` and `{output}/mouse/` subdirectories
+- **`--input PATH`** - Custom input directory for database and XML files
+  - Default: `inputs/`
+- **`--hs-db PATH`** - Override path to human database file
+  - Default: `inputs/msigdb_FULL_v2025.1.Hs.db`
+- **`--mm-db PATH`** - Override path to mouse database file
+  - Default: `inputs/msigdb_FULL_v2025.1.Mm.db`
+- **`--hs-xml PATH`** - Override path to human XML history file
+  - Default: `inputs/msigdb_history_v2025.1.Hs.xml`
+- **`--mm-xml PATH`** - Override path to mouse XML history file
+  - Default: `inputs/msigdb_history_v2025.1.Mm.xml`
 
 ### Examples
 
-Export only human gene sets:
+Export all gene sets (human and mouse):
 ```bash
-python3 export_gene_sets.py --human
+python export_genesets.py
 ```
 
-Export the first 500 gene sets total:
+Export only human gene sets:
 ```bash
-python3 export_gene_sets.py --limit 500
+python export_genesets.py --human
+```
+
+Export only mouse gene sets:
+```bash
+python export_genesets.py --mouse
+```
+
+Export the first 500 gene sets:
+```bash
+python export_genesets.py --limit 500
 ```
 
 Resume a previous export (skip existing files):
 ```bash
-python3 export_gene_sets.py --resume
+python export_genesets.py --resume
 ```
 
 Export to a custom directory:
 ```bash
-python3 export_gene_sets.py --output /path/to/output
+python export_genesets.py --output /path/to/output
 ```
 
-Export only mouse gene sets, limited to 1000:
+Export with custom database paths:
 ```bash
-python3 export_gene_sets.py --mouse --limit 1000
+python export_genesets.py --hs-db /path/to/human.db --mm-db /path/to/mouse.db
+```
+
+Export only 1000 mouse gene sets, resuming from where you left off:
+```bash
+python export_genesets.py --mouse --limit 1000 --resume
 ```
 
 ### Output Format
 
-Each gene set is exported as a YAML file containing:
+Each gene set is exported as a YAML file in `outputs/{species}/{GENE_SET_NAME}.yaml` containing:
 - Standard and systematic names
 - Brief and full descriptions
 - Collection information
-- Source publication and authors
+- Source species and publication details
+- Authors and contributor information
+- Related gene sets (from same publication and from same authors)
+- Gene members with symbols and NCBI IDs
+- Version history
+- Dataset references
+- External links (PubMed, etc.)
+
+## export_genesets_xml.py
+
+Exports MSigDB gene sets from XML files to structured YAML files. This is an alternative to `export_genesets.py` that works directly with XML source files instead of SQLite databases.
+
+### Description
+
+This script parses MSigDB XML files and exports each gene set as a separate YAML file. It includes advanced XML sanitization to handle malformed XML content, including invalid UTF-8 sequences and control characters. The script can process both the main gene set XML files and version history XML files.
+
+### Usage
+
+```bash
+python export_genesets_xml.py [OPTIONS]
+```
+
+### Command-Line Options
+
+#### Species Selection
+
+- **`--human`** - Export only human gene sets (from Hs XML)
+- **`--mouse`** - Export only mouse gene sets (from Mm XML)
+- If neither flag is specified, both human and mouse gene sets are exported
+
+#### Processing Control
+
+- **`--limit N`** - Limit the total number of gene sets to export across all species
+  - Example: `--limit 100` exports up to 100 gene sets total
+- **`--resume`** - Skip generating YAML files that already exist on disk
+  - Useful for resuming interrupted exports or updating only new gene sets
+
+#### Path Configuration
+
+- **`--output PATH`** - Custom output directory for YAML files
+  - Default: `outputs/`
+  - YAML files are created in `{output}/human-xml/` and `{output}/mouse-xml/` subdirectories
+- **`--input PATH`** - Custom input directory for XML files
+  - Default: `inputs/`
+- **`--hs-xml PATH`** - Override path to human gene set XML file
+  - Default: `inputs/msigdb_v2025.1.Hs.xml`
+- **`--mm-xml PATH`** - Override path to mouse gene set XML file
+  - Default: `inputs/msigdb_v2025.1.Mm.xml`
+- **`--hs-history-xml PATH`** - Override path to human XML history file
+  - Default: `inputs/msigdb_history_v2025.1.Hs.xml`
+- **`--mm-history-xml PATH`** - Override path to mouse XML history file
+  - Default: `inputs/msigdb_history_v2025.1.Mm.xml`
+
+### Examples
+
+Export all gene sets (human and mouse):
+```bash
+python export_genesets_xml.py
+```
+
+Export only human gene sets:
+```bash
+python export_genesets_xml.py --human
+```
+
+Export only mouse gene sets:
+```bash
+python export_genesets_xml.py --mouse
+```
+
+Export the first 500 gene sets:
+```bash
+python export_genesets_xml.py --limit 500
+```
+
+Resume a previous export (skip existing files):
+```bash
+python export_genesets_xml.py --resume
+```
+
+Export to a custom directory:
+```bash
+python export_genesets_xml.py --output /path/to/output
+```
+
+Export with custom XML paths:
+```bash
+python export_genesets_xml.py --hs-xml /path/to/human.xml --mm-xml /path/to/mouse.xml
+```
+
+Export only 1000 mouse gene sets with custom paths:
+```bash
+python export_genesets_xml.py --mouse --limit 1000 --mm-xml /path/to/mouse.xml
+```
+
+### Output Format
+
+Each gene set is exported as a YAML file in `outputs/{species}-xml/{GENE_SET_NAME}.yaml` with the same structure as `export_genesets.py`:
+- Standard and systematic names
+- Brief and full descriptions
+- Collection information
+- Source species and publication details
+- Authors and contributor information
 - Related gene sets
 - Gene members with symbols and NCBI IDs
 - Version history
 - Dataset references
 - External links
 
-Example YAML structure:
-```yaml
-standard_name: ABBUD_LIF_SIGNALING_1_DN
-systematic_name: MM623
-brief_description: Genes down-regulated in AtT20 cells...
-collection:
-  name: M2:CGP
-  full_name: Chemical and Genetic Perturbations
-source_species: Mus musculus
-members:
-  - source_id: AA657044
-    gene_symbol: Ahnak
-    ncbi_gene_id: 66395
-  # ... more members
-```
+### XML Sanitization
 
-## generate_geneset_pages.py
+The script includes robust XML sanitization that:
+- Handles invalid UTF-8 sequences
+- Removes invalid XML control characters
+- Processes malformed attribute values
+- Creates sanitized temporary files when necessary
+- Provides detailed error reporting
 
-Generates static HTML pages from YAML gene set files.
+## generate_pages.py
+
+Generates static HTML pages from YAML gene set files. Creates a complete website with individual pages for each gene set.
+
+### Description
+
+This script reads YAML gene set files (generated by either `export_genesets.py` or `export_genesets_xml.py`) and creates static HTML pages using Jinja2 templates. Each gene set gets its own HTML page with complete metadata, gene lists, related gene sets, and version history.
 
 ### Usage
 
 ```bash
-python3 generate_geneset_pages.py [OPTIONS]
+python generate_pages.py [OPTIONS]
 ```
 
-### Options
+### Command-Line Options
 
 #### Species Selection
-- `--human` - Generate only human gene set pages
-- `--mouse` - Generate only mouse gene set pages
-- (default: generates both species)
+
+- **`--human`** - Generate only human gene set pages
+- **`--mouse`** - Generate only mouse gene set pages
+- If neither flag is specified, both human and mouse pages are generated
 
 #### Processing Control
-- `--limit N` - Limit the number of HTML pages to generate
-- `--resume` - Skip generating files that already exist
+
+- **`--limit N`** - Limit the total number of HTML pages to generate across all species
+  - Example: `--limit 100` generates up to 100 pages total
+- **`--resume`** - Skip generating HTML files that already exist on disk
+  - Useful for resuming interrupted generation or updating only new pages
+- **`--geneset NAME`** - Generate a specific gene set by name
+  - Example: `--geneset ZNF320_TARGET_GENES`
+  - Useful for testing or regenerating a single page
 
 #### Path Configuration
-- `--output PATH` - Custom output directory (default: `msigdb/`)
+
+- **`--output PATH`** - Custom output directory for HTML files
+  - Default: `msigdb/`
+  - HTML files are created in `{output}/human/geneset/` and `{output}/mouse/geneset/` subdirectories
+- **`--link-prefix PREFIX`** - Prefix for all internal links
+  - Default: `` (empty string for relative links)
+  - Example: `--link-prefix https://www.gsea-msigdb.org/`
+  - Useful for generating pages for deployment at a specific base URL
 
 ### Examples
 
+Generate all gene set pages (human and mouse):
+```bash
+python generate_pages.py
+```
+
 Generate only human gene set pages:
 ```bash
-python3 generate_geneset_pages.py --human
+python generate_pages.py --human
+```
+
+Generate only mouse gene set pages:
+```bash
+python generate_pages.py --mouse
 ```
 
 Generate the first 100 pages:
 ```bash
-python3 generate_geneset_pages.py --limit 100
+python generate_pages.py --limit 100
 ```
 
 Resume page generation (skip existing files):
 ```bash
-python3 generate_geneset_pages.py --resume
+python generate_pages.py --resume
 ```
 
 Generate to a custom directory:
 ```bash
-python3 generate_geneset_pages.py --output /var/www/html
+python generate_pages.py --output /var/www/html
+```
+
+Generate pages with absolute URL prefix:
+```bash
+python generate_pages.py --link-prefix https://www.gsea-msigdb.org/
+```
+
+Generate a single specific gene set:
+```bash
+python generate_pages.py --geneset HALLMARK_APOPTOSIS
 ```
 
 Generate 500 mouse pages, resuming from where you left off:
 ```bash
-python3 generate_geneset_pages.py --mouse --limit 500 --resume
+python generate_pages.py --mouse --limit 500 --resume
 ```
 
-### Output
+Generate all pages with custom output and link prefix:
+```bash
+python generate_pages.py --output /var/www/html --link-prefix https://example.com/
+```
+
+### Output Structure
 
 HTML pages are generated in the following structure:
 - Human pages: `msigdb/human/geneset/{GENE_SET_NAME}.html`
 - Mouse pages: `msigdb/mouse/geneset/{GENE_SET_NAME}.html`
+
+Each HTML page includes:
+- Gene set name and description
+- Collection and source information
+- Complete gene member list with NCBI links
+- Related gene sets (collapsible sections)
+- Version history
+- External links
+- Formatted metadata tables
+
+### Input Requirements
+
+The script expects YAML files to exist in:
+- `outputs/human/` for human gene sets
+- `outputs/mouse/` for mouse gene sets
+
+Run `export_genesets.py` or `export_genesets_xml.py` first to generate these YAML files.
